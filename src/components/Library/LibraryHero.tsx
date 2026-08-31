@@ -124,3 +124,5 @@ export const LibraryHero: React.FC<LibraryHeroProps> = ({ stats }) => {
     </div>
   );
 };
+
+export default LibraryHero;

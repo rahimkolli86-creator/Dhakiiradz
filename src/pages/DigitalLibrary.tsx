@@ -19,10 +19,10 @@ import {
 import { supabase, hasSupabaseCreds } from '/lib/supabase';
 import { INITIAL_LIBRARY_ITEMS, LibraryItem } from '../data/libraryData';
 import LibraryHero from '../components/Library/LibraryHero';
-import { LibraryFilters } from '../components/library/LibraryFilters';
-import { AudioPlayer } from '../components/library/AudioPlayer';
-import { LibraryItemCard } from '../components/library/LibraryItemCard';
-import { ItemDetailModal } from '../components/library/ItemDetailModal';
+import { LibraryFilters } from '../components/Library/LibraryFilters';
+import { AudioPlayer } from '../components/Library/AudioPlayer';
+import { LibraryItemCard } from '../components/Library/LibraryItemCard';
+import { ItemDetailModal } from '../components/Library/ItemDetailModal';
 
 export default function DigitalLibrary() {
   const [items, setItems] = useState<LibraryItem[]>([]);
