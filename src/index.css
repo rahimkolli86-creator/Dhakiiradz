@@ -1,0 +1,185 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Tajawal", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Tajawal", var(--font-sans);
+  --color-brand-green: #1f5f3a;
+  --color-brand-hover: #287a4a;
+  --color-accent-green: #4ade80;
+  --color-cinematic-bg: #0b0b0b;
+  
+  --radius-sm: 2px;
+  --radius-md: 4px;
+}
+
+body {
+  background-color: var(--color-cinematic-bg);
+  color: white;
+  direction: rtl;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (pointer: fine) {
+  body, a, button, [role="button"], input, textarea, select {
+    cursor: none !important;
+  }
+}
+
+.cinematic-vignette {
+  background: radial-gradient(circle at 50% 50%, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
+}
+
+.text-glow-green {
+  text-shadow: 0 0 20px rgba(31, 95, 58, 0.6);
+}
+
+.hero-text-shadow {
+  text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.glass-panel {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0b0b;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f5f3a;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #287a4a;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hero-gradient {
+  background: linear-gradient(to left, rgba(11, 11, 11, 0.95) 0%, rgba(11, 11, 11, 0.6) 40%, transparent 100%);
+}
+
+/* Responsive spacing for main content to account for left sidebar */
+@media (min-width: 768px) {
+  .main-layout-padding {
+    padding-left: 90px;
+  }
+}
+
+.journey-card {
+  transition: all 0.3s ease !important;
+  cursor: pointer;
+}
+
+.journey-card:hover {
+  transform: scale(1.05) !important;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6) !important;
+}
+ 
+.hero-content {
+  position: absolute;
+  right: 8%;
+  top: 10%;
+  transform: translateY(-50%);
+  text-align: right;
+  max-width: 500px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+}
+
+/* Responsive Grid & Layout */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+img {
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 1024px) {
+  .hero-content {
+    right: 5%;
+    max-width: 450px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-content {
+    position: relative;
+    right: 0;
+    top: 0;
+    transform: none;
+    text-align: center;
+    align-items: center;
+    max-width: 100%;
+    padding: 100px 20px 40px;
+    margin-top: 0;
+  }
+
+  .buttons {
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hero-content h1 {
+    font-size: 2.5rem !important;
+    text-align: center;
+  }
+
+  .hero-content p {
+    text-align: center;
+    font-size: 1rem !important;
+  }
+
+  /* Stack layout vertically */
+  .container {
+    flex-direction: column;
+  }
+
+  /* Cards full width */
+  .card, .journey-card {
+    width: 100%;
+    min-width: unset !important;
+  }
+
+  /* Reduce global h1 text size */
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  /* Buttons full width on mobile */
+  .hero-content button, 
+  .hero-content .buttons a {
+    width: 100% !important;
+    justify-content: center;
+  }
+}

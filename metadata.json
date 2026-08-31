@@ -1,0 +1,8 @@
+{
+  "name": "الذاكرة الجزائرية",
+  "description": "منصة رقمية تفاعلية لاستكشاف تاريخ الجزائر برؤية سينمائية حديثة.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
