@@ -233,7 +233,7 @@ const Home = ({
             }}
             className="text-base sm:text-xl lg:text-2xl text-gray-300 font-serif font-light leading-relaxed max-w-2xl mx-auto text-center"
           >
-            ذاكرة الجزائر — TEST 
+              ارشيفنا   
           </motion.p>
         </div>
 
@@ -303,7 +303,7 @@ const Home = ({
               </span>
 
               <h2 className="font-serif text-4xl md:text-6xl font-black text-white tracking-tight">
-                المعارك
+                الأحداث
                 <span className="text-[#c6a66b]">
                   {' '}البارزة
                 </span>
