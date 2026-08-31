@@ -18,7 +18,7 @@ import {
 
 import { supabase, hasSupabaseCreds } from '/lib/supabase';
 import { INITIAL_LIBRARY_ITEMS, LibraryItem } from '../data/libraryData';
-import { LibraryHero } from '../components/library/LibraryHero';
+import LibraryHero from '../components/Library/LibraryHero';
 import { LibraryFilters } from '../components/library/LibraryFilters';
 import { AudioPlayer } from '../components/library/AudioPlayer';
 import { LibraryItemCard } from '../components/library/LibraryItemCard';
