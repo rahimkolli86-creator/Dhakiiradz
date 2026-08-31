@@ -233,7 +233,7 @@ const Home = ({
             }}
             className="text-base sm:text-xl lg:text-2xl text-gray-300 font-serif font-light leading-relaxed max-w-2xl mx-auto text-center"
           >
-           ارشيفنا و تاريخنا
+            ذاكرة الجزائر — TEST 
           </motion.p>
         </div>
 
