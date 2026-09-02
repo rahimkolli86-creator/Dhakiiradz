@@ -20,14 +20,14 @@ const phrases = [
 ];
 
 // ============================================================
-//  دوال مساعدة خفيفة
+//  دوال مساعدة
 // ============================================================
 const generateParticles = (imageData: ImageData, width: number, height: number): ParticlePoint[] => {
   const points: ParticlePoint[] = [];
-  const step = 4;
-  const brightnessThreshold = 40;
+  const step = 3;
+  const brightnessThreshold = 35;
   const alphaThreshold = 80;
-  const randomThreshold = 0.4;
+  const randomThreshold = 0.35;
 
   for (let y = 0; y < height; y += step) {
     for (let x = 0; x < width; x += step) {
@@ -68,20 +68,20 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
   const speechTimeoutRef = useRef<number | null>(null);
 
   // ============================================================
-  //  تحميل الصورة ومعالجتها (مع الحفاظ على الجودة)
+  //  تحميل الصورة بالكود الأصلي (180x240)
   // ============================================================
   useEffect(() => {
     if (!visible) return;
 
     const image = new Image();
-    image.crossOrigin = 'anonymous';
     image.src = '/image/hologram-face.png';
 
-    const handleLoad = () => {
+    image.onload = () => {
       setImageLoaded(true);
       const canvas = document.createElement('canvas');
-      const width = 150; // حجم معتدل
-      const height = 200;
+      const width = 180;
+      const height = 240;
+
       canvas.width = width;
       canvas.height = height;
 
@@ -94,14 +94,16 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
 
       setFaceParticles(points);
       setParticlesReady(true);
-      setTimeout(() => setFaceFormed(true), 2500);
+
+      setTimeout(() => {
+        setFaceFormed(true);
+      }, 2800);
     };
 
-    image.onload = handleLoad;
     image.onerror = () => {
-      // Fallback مع صورة افتراضية
+      // Fallback في حال فشل تحميل الصورة
       setImageLoaded(true);
-      const fallbackPoints: ParticlePoint[] = Array.from({ length: 350 }, (_, i) => ({
+      const fallbackPoints: ParticlePoint[] = Array.from({ length: 300 }, (_, i) => ({
         x: (Math.random() - 0.5) * 80,
         y: (Math.random() - 0.5) * 100,
         size: Math.random() * 1.5 + 0.5,
@@ -109,7 +111,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
       }));
       setFaceParticles(fallbackPoints);
       setParticlesReady(true);
-      setTimeout(() => setFaceFormed(true), 1800);
+      setTimeout(() => setFaceFormed(true), 2000);
     };
 
     return () => {
@@ -165,7 +167,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
       utterance.onerror = () => resolve();
       window.speechSynthesis.speak(utterance);
 
-      speechTimeoutRef.current = window.setTimeout(resolve, 3500);
+      speechTimeoutRef.current = window.setTimeout(resolve, 4000);
     });
   }, []);
 
@@ -176,7 +178,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
     if (!visible) return;
 
     const startSequence = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 3500));
+      await new Promise((resolve) => setTimeout(resolve, 3800));
 
       for (let i = 0; i < phrases.length; i++) {
         if (!visible) return;
@@ -258,7 +260,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
         />
 
         {/* =====================================================
-            الهولوغرام (مع صورة واضحة)
+            الهولوغرام
         ===================================================== */}
         <div
           className="absolute inset-0 flex items-center justify-center"
@@ -325,20 +327,18 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
                     />
                   ))}
 
-                  {/* =============================================
-                      صورة الهولوغرام (واضحة الآن)
-                  ============================================= */}
+                  {/* صورة الهولوغرام */}
                   {faceFormed && imageLoaded && (
                     <motion.img
                       src="/image/hologram-face.png"
                       alt="هولوغرام ذاكرة الجزائر"
                       initial={{
                         opacity: 0,
-                        filter: 'blur(6px)',
-                        scale: 1.02,
+                        filter: 'blur(8px)',
+                        scale: 1.03,
                       }}
                       animate={{
-                        opacity: 0.55, // زيادة الشفافية
+                        opacity: 0.55,
                         filter: 'blur(0px)',
                         scale: 1,
                       }}
@@ -355,7 +355,6 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
                           drop-shadow(0 0 20px rgba(198,166,107,0.5))
                           drop-shadow(0 0 50px rgba(198,166,107,0.15))
                         `,
-                        opacity: 0.55,
                       }}
                     />
                   )}
