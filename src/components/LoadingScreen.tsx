@@ -24,10 +24,10 @@ const phrases = [
 // ============================================================
 const generateParticles = (imageData: ImageData, width: number, height: number): ParticlePoint[] => {
   const points: ParticlePoint[] = [];
-  const step = 4; // زيادة الخطوة لتقليل النقاط
-  const brightnessThreshold = 45;
-  const alphaThreshold = 100;
-  const randomThreshold = 0.45;
+  const step = 4;
+  const brightnessThreshold = 40;
+  const alphaThreshold = 80;
+  const randomThreshold = 0.4;
 
   for (let y = 0; y < height; y += step) {
     for (let x = 0; x < width; x += step) {
@@ -42,8 +42,8 @@ const generateParticles = (imageData: ImageData, width: number, height: number):
         points.push({
           x: (x / width - 0.5) * 100,
           y: (y / height - 0.5) * 135,
-          size: Math.random() * 1.6 + 0.5,
-          delay: Math.random() * 1.6,
+          size: Math.random() * 1.8 + 0.6,
+          delay: Math.random() * 1.8,
         });
       }
     }
@@ -62,26 +62,26 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
   const [faceParticles, setFaceParticles] = useState<ParticlePoint[]>([]);
   const [particlesReady, setParticlesReady] = useState(false);
   const [faceFormed, setFaceFormed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
   const speechTimeoutRef = useRef<number | null>(null);
-  const imageLoadedRef = useRef(false);
 
   // ============================================================
-  //  تحميل الصورة ومعالجتها (محسّن)
+  //  تحميل الصورة ومعالجتها (مع الحفاظ على الجودة)
   // ============================================================
   useEffect(() => {
-    if (!visible || imageLoadedRef.current) return;
+    if (!visible) return;
 
     const image = new Image();
     image.crossOrigin = 'anonymous';
     image.src = '/image/hologram-face.png';
 
     const handleLoad = () => {
-      imageLoadedRef.current = true;
+      setImageLoaded(true);
       const canvas = document.createElement('canvas');
-      const width = 120; // تصغير الأبعاد لتقليل المعالجة
-      const height = 160;
+      const width = 150; // حجم معتدل
+      const height = 200;
       canvas.width = width;
       canvas.height = height;
 
@@ -94,15 +94,14 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
 
       setFaceParticles(points);
       setParticlesReady(true);
-
-      // تقليل وقت الانتظار
-      setTimeout(() => setFaceFormed(true), 2000);
+      setTimeout(() => setFaceFormed(true), 2500);
     };
 
     image.onload = handleLoad;
     image.onerror = () => {
-      // Fallback: نقاط افتراضية إذا فشل تحميل الصورة
-      const fallbackPoints: ParticlePoint[] = Array.from({ length: 300 }, (_, i) => ({
+      // Fallback مع صورة افتراضية
+      setImageLoaded(true);
+      const fallbackPoints: ParticlePoint[] = Array.from({ length: 350 }, (_, i) => ({
         x: (Math.random() - 0.5) * 80,
         y: (Math.random() - 0.5) * 100,
         size: Math.random() * 1.5 + 0.5,
@@ -110,7 +109,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
       }));
       setFaceParticles(fallbackPoints);
       setParticlesReady(true);
-      setTimeout(() => setFaceFormed(true), 1500);
+      setTimeout(() => setFaceFormed(true), 1800);
     };
 
     return () => {
@@ -130,7 +129,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
   }, [onFinish]);
 
   // ============================================================
-  //  حركة الماوس (مبسطة)
+  //  حركة الماوس
   // ============================================================
   useEffect(() => {
     if (!visible) return;
@@ -147,7 +146,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
   }, [visible]);
 
   // ============================================================
-  //  النطق (محسّن)
+  //  النطق
   // ============================================================
   const speakPhrase = useCallback((text: string): Promise<void> => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -171,13 +170,13 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
   }, []);
 
   // ============================================================
-  //  التسلسل الزمني (محسّن)
+  //  التسلسل الزمني
   // ============================================================
   useEffect(() => {
     if (!visible) return;
 
     const startSequence = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 3200));
+      await new Promise((resolve) => setTimeout(resolve, 3500));
 
       for (let i = 0; i < phrases.length; i++) {
         if (!visible) return;
@@ -218,9 +217,9 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
   }, [isLeaving, onFinish]);
 
   // ============================================================
-  //  جسيمات الخلفية (مخفضة)
+  //  جسيمات الخلفية
   // ============================================================
-  const backgroundParticles = useMemo(() => 
+  const backgroundParticles = useMemo(() =>
     Array.from({ length: 25 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
@@ -243,23 +242,23 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
         className="fixed inset-0 z-[9999] overflow-hidden bg-[#020202] text-white"
         dir="rtl"
       >
-        {/* خلفية مبسطة */}
+        {/* خلفية */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'radial-gradient(circle at center, rgba(198,166,107,0.06) 0%, rgba(0,0,0,0.9) 50%, #020202 80%)',
+            background: 'radial-gradient(circle at center, rgba(198,166,107,0.07) 0%, rgba(0,0,0,0.9) 50%, #020202 80%)',
           }}
         />
 
-        {/* توهج ذهبي مخفف */}
+        {/* توهج ذهبي */}
         <motion.div
-          animate={{ scale: [1, 1.05, 1], opacity: [0.1, 0.18, 0.1] }}
+          animate={{ scale: [1, 1.06, 1], opacity: [0.1, 0.2, 0.1] }}
           transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute left-1/2 top-1/2 w-[300px] h-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[80px] bg-[#c6a66b] pointer-events-none"
+          className="absolute left-1/2 top-1/2 w-[350px] h-[350px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[90px] bg-[#c6a66b] pointer-events-none"
         />
 
         {/* =====================================================
-            الهولوغرام (مبسط)
+            الهولوغرام (مع صورة واضحة)
         ===================================================== */}
         <div
           className="absolute inset-0 flex items-center justify-center"
@@ -267,64 +266,96 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
         >
           <motion.div
             animate={{
-              rotateY: mouse.x * 5,
-              rotateX: -mouse.y * 4,
-              x: mouse.x * 8,
-              y: mouse.y * 6,
+              rotateY: mouse.x * 6,
+              rotateX: -mouse.y * 4.5,
+              x: mouse.x * 10,
+              y: mouse.y * 7,
             }}
             transition={{ type: 'spring', stiffness: 30, damping: 18, mass: 1 }}
-            className="relative w-[260px] h-[380px] sm:w-[320px] sm:h-[460px] md:w-[380px] md:h-[520px]"
+            className="relative w-[280px] h-[400px] sm:w-[340px] sm:h-[480px] md:w-[420px] md:h-[560px]"
             style={{ transformStyle: 'preserve-3d' }}
           >
-            {/* حلقات خارجية (مخففة) */}
+            {/* حلقات خارجية */}
             <motion.div
               animate={{ rotateZ: 360 }}
               transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-              className="absolute left-1/2 top-1/2 w-[240px] h-[240px] sm:w-[300px] sm:h-[300px] md:w-[360px] md:h-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#c6a66b]/15"
+              className="absolute left-1/2 top-1/2 w-[260px] h-[260px] sm:w-[320px] sm:h-[320px] md:w-[400px] md:h-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#c6a66b]/15"
             />
 
             <motion.div
               animate={{ rotateZ: -360 }}
               transition={{ duration: 35, repeat: Infinity, ease: 'linear' }}
-              className="absolute left-1/2 top-1/2 w-[280px] h-[280px] sm:w-[350px] sm:h-[350px] md:w-[420px] md:h-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#c6a66b]/10 border-dashed"
+              className="absolute left-1/2 top-1/2 w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] md:w-[460px] md:h-[460px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#c6a66b]/10 border-dashed"
             />
 
             <motion.div
               animate={{ rotateZ: 360, scale: [1, 1.03, 1] }}
               transition={{ rotateZ: { duration: 20, repeat: Infinity, ease: 'linear' }, scale: { duration: 4, repeat: Infinity } }}
-              className="absolute left-1/2 top-1/2 w-[200px] h-[200px] sm:w-[260px] sm:h-[260px] md:w-[320px] md:h-[320px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#c6a66b]/20"
+              className="absolute left-1/2 top-1/2 w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] md:w-[340px] md:h-[340px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#c6a66b]/20"
             />
 
-            {/* جسيمات الوجه (مخففة) */}
+            {/* جسيمات الوجه */}
             {particlesReady && (
               <div className="absolute inset-0 flex items-center justify-center" style={{ transform: 'translateZ(80px)' }}>
                 <div className="relative w-full h-full">
-                  {faceParticles.slice(0, 600).map((particle, index) => (
+                  {faceParticles.map((particle, index) => (
                     <motion.span
                       key={index}
-                      initial={{ left: `${50 + particle.x / 3}%`, top: `${50 + particle.y / 3}%`, opacity: 0, scale: 0 }}
-                      animate={{ opacity: [0, 0.85, 1], scale: [0, 1.3, 1] }}
-                      transition={{ duration: 2.2, delay: particle.delay * 0.7, ease: [0.16, 1, 0.3, 1] }}
+                      initial={{
+                        left: `${50 + particle.x / 2.5}%`,
+                        top: `${50 + particle.y / 2.5}%`,
+                        opacity: 0,
+                        scale: 0
+                      }}
+                      animate={{
+                        opacity: [0, 0.9, 1],
+                        scale: [0, 1.3, 1]
+                      }}
+                      transition={{
+                        duration: 2.5,
+                        delay: particle.delay * 0.7,
+                        ease: [0.16, 1, 0.3, 1]
+                      }}
                       className="absolute rounded-full bg-[#c6a66b]"
                       style={{
                         width: particle.size,
                         height: particle.size,
-                        boxShadow: '0 0 3px rgba(198,166,107,0.6)',
+                        boxShadow: '0 0 5px rgba(198,166,107,0.7)',
                       }}
                     />
                   ))}
 
-                  {/* صورة الهولوغرام (شفافية أخف) */}
-                  {faceFormed && (
+                  {/* =============================================
+                      صورة الهولوغرام (واضحة الآن)
+                  ============================================= */}
+                  {faceFormed && imageLoaded && (
                     <motion.img
                       src="/image/hologram-face.png"
-                      alt="هولوغرام"
-                      initial={{ opacity: 0, filter: 'blur(8px)', scale: 1.02 }}
-                      animate={{ opacity: 0.4, filter: 'blur(0px)', scale: 1 }}
-                      transition={{ duration: 1.5, ease: 'easeOut' }}
+                      alt="هولوغرام ذاكرة الجزائر"
+                      initial={{
+                        opacity: 0,
+                        filter: 'blur(6px)',
+                        scale: 1.02,
+                      }}
+                      animate={{
+                        opacity: 0.55, // زيادة الشفافية
+                        filter: 'blur(0px)',
+                        scale: 1,
+                      }}
+                      transition={{
+                        duration: 1.8,
+                        ease: 'easeOut',
+                      }}
                       className="absolute inset-0 w-full h-full object-contain"
                       style={{
-                        filter: 'sepia(0.2) saturate(0.7) contrast(1.1) drop-shadow(0 0 10px rgba(198,166,107,0.4))',
+                        filter: `
+                          sepia(0.2)
+                          saturate(0.8)
+                          contrast(1.15)
+                          drop-shadow(0 0 20px rgba(198,166,107,0.5))
+                          drop-shadow(0 0 50px rgba(198,166,107,0.15))
+                        `,
+                        opacity: 0.55,
                       }}
                     />
                   )}
@@ -332,20 +363,20 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
               </div>
             )}
 
-            {/* خط المسح (مبسط) */}
+            {/* خط المسح */}
             <motion.div
               animate={{ top: ['8%', '92%'] }}
               transition={{ duration: 3.5, repeat: Infinity, ease: 'linear' }}
               className="absolute left-[10%] right-[10%] h-[1.5px] z-30"
               style={{
-                background: 'linear-gradient(90deg, transparent, rgba(198,166,107,0.7), transparent)',
-                boxShadow: '0 0 15px rgba(198,166,107,0.5)',
+                background: 'linear-gradient(90deg, transparent, rgba(198,166,107,0.8), transparent)',
+                boxShadow: '0 0 20px rgba(198,166,107,0.6)',
               }}
             />
 
-            {/* خطوط رقمية (مخففة) */}
+            {/* خطوط رقمية */}
             <div
-              className="absolute inset-[10%] z-20 opacity-[0.08]"
+              className="absolute inset-[10%] z-20 opacity-[0.1]"
               style={{
                 background: 'repeating-linear-gradient(to bottom, transparent 0px, transparent 6px, rgba(198,166,107,0.6) 7px)',
                 mixBlendMode: 'screen',
@@ -355,7 +386,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
         </div>
 
         {/* =====================================================
-            HUD (مبسط)
+            HUD
         ===================================================== */}
         <div className="absolute inset-0 z-50 pointer-events-none">
           <div className="absolute top-[12%] left-4 text-[7px] font-mono tracking-widest text-[#c6a66b]/50">ARCHIVE // 1954</div>
@@ -365,7 +396,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
         </div>
 
         {/* =====================================================
-            النص التاريخي (مبسط)
+            النص التاريخي
         ===================================================== */}
         <div className="absolute left-0 right-0 bottom-[10%] z-[200] flex justify-center px-4">
           <div
@@ -397,7 +428,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
         </div>
 
         {/* =====================================================
-            جسيمات الخلفية (مخففة)
+            جسيمات الخلفية
         ===================================================== */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {backgroundParticles.map((p) => (
@@ -464,7 +495,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinish }) => {
         </div>
 
         {/* =====================================================
-            تأثيرات نهائية (مخففة)
+            تأثيرات نهائية
         ===================================================== */}
         <div
           className="absolute inset-0 z-[800] pointer-events-none"
