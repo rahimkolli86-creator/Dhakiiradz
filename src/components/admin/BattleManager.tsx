@@ -41,7 +41,7 @@ const BattleManager: React.FC<BattleManagerProps> = ({ battles, onAdd, onUpdate,
   // Form states
   const [title, setTitle] = useState('');
   const [year, setYear] = useState('');
-  const [region_id, setregion_id] = useState('DZ-05');
+  const [regionId, setRegionId] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
   const [heroImage, setHeroImage] = useState('');
@@ -63,7 +63,7 @@ const BattleManager: React.FC<BattleManagerProps> = ({ battles, onAdd, onUpdate,
     setEditingBattle(null);
     setTitle('');
     setYear('');
-    setregion_id('DZ-05');
+    setRegionId('');
     setDescription('');
     setImage('');
     setHeroImage('');
@@ -77,7 +77,7 @@ const BattleManager: React.FC<BattleManagerProps> = ({ battles, onAdd, onUpdate,
     setEditingBattle(battle);
     setTitle(battle.title);
     setYear(battle.year);
-    setregion_id(battle.region_id);
+    setRegionId(battle.region_id);
     setDescription(battle.description);
     setImage(battle.image || '');
     setHeroImage(battle.hero_image || '');
@@ -106,7 +106,7 @@ setDetails(
      onUpdate(editingBattle.id, {
   title,
   year,
-  region_id: region_id,
+  region_id: regionId,
   description,
   image,
   hero_image: heroImage,
@@ -131,7 +131,7 @@ setDetails(
     onAdd({
       title,
       year,
-      region_id: region_id,
+     region_id: regionId,
       description,
       image,
       hero_image: heroImage,
@@ -218,7 +218,7 @@ setDetails(
                       {battle.year} م
                     </td>
                     <td className="p-4 text-xs font-bold text-gray-400">
-                      {getRegionName(battle.region_id)}
+                      {getRegionName(battle.regionId)}
                     </td>
                     <td className="p-4 text-xs font-mono text-gray-500">
                       {new Date(battle.created_at).toLocaleDateString('ar-DZ')}
@@ -302,20 +302,23 @@ setDetails(
                     />
                   </div>
 
-                  {/* Region Link */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 block">المنطقة العسكرية (الولاية التاريخية)</label>
-                    <select
-                      value={region_id}
-                      onChange={(e) => setregion_id(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 focus:border-[#c6a66b] rounded-xl py-3 px-4 text-xs text-white outline-none transition-all"
-                    >
-                      {WILAYAS_LIST.map(w => (
-                        <option key={w.id} value={w.id} className="bg-[#0b0b0b] text-white">{w.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+{/* Region Link */}
+<div className="space-y-2">
+  <label className="text-xs font-bold text-gray-400 block">
+    المنطقة العسكرية (الولاية التاريخية)
+  </label>
+
+  <input
+  type="text"
+  value={regionId}
+  onChange={(e) => setRegionId(e.target.value)}
+  placeholder="اكتب المنطقة العسكرية..."
+  className="w-full bg-white/5 border border-white/10 focus:border-[#c6a66b] rounded-xl py-3 px-4 text-xs text-white outline-none transition-all"
+/>
+</div>
+</div>
+                        
+
 {/* Event Type */}
 <div className="space-y-2">
   <label className="text-xs font-bold text-gray-400 block">
