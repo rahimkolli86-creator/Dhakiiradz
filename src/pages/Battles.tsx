@@ -1,633 +1,659 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
+  Search,
+  SlidersHorizontal,
   Swords,
-  Shield,
   Calendar,
   MapPin,
-  Search,
-  ArrowRight,
-  RotateCcw,
-  ChevronLeft,
-  ChevronDown,
-  Layers,
+  ArrowLeft,
   X,
-  AlertTriangle,
+  Loader2,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { supabase, hasSupabaseCreds } from '/lib/supabase';
 
-import { supabase } from '/lib/supabase';
-import { ALL_58_WILAYAS_METADATA } from '/src/data/wilayas';
-
-// ============================================================
-//  الأنواع (Types)
-// ============================================================
 interface Battle {
   id: string;
   title: string;
-  year: number | null;          // تم التوحيد إلى number | null
-  region_id: string | null;
-  description: string | null;
-  status: string | null;
-  created_at: string | null;
-  image: string | null;
-  hero_image: string | null;
-  event_type: string | null;
-  sources: Record<string, unknown> | null;  // تحديد النوع بدلاً من unknown
-  details: Record<string, unknown> | null;
-  related_battles: string[] | null;
+  year: string | number;
+  region_id: string;
+  description: string;
+  image?: string;
+  hero_image?: string;
+  event_type?: string;
+  created_at?: string;
+  status?: string;
 }
 
-interface FilterState {
-  search: string;
-  year: string;
-  region: string;
-}
+const Battles = () => {
+  const navigate = useNavigate();
 
-// ============================================================
-//  الدوال المساعدة (Pure Helpers)
-// ============================================================
-const getRegionDisplayName = (regionId: string | number | null): string => {
-  if (!regionId) return 'غير محددة';
-
-  const raw = String(regionId).trim();
-  
-  // بحث مباشر في الخريطة
-  if (ALL_58_WILAYAS_METADATA[raw]) {
-    return ALL_58_WILAYAS_METADATA[raw].name;
-  }
-
-  // محاولة استخراج الرقم من النص (مثل "DZ-16" أو "16")
-  const numericMatch = raw.match(/\d+/);
-  if (numericMatch) {
-    const num = parseInt(numericMatch[0], 10);
-    if (num >= 1 && num <= 58) {
-      const code = num < 10 ? `DZ-0${num}` : `DZ-${num}`;
-      if (ALL_58_WILAYAS_METADATA[code]) {
-        return ALL_58_WILAYAS_METADATA[code].name;
-      }
-    }
-  }
-
-  return raw;
-};
-
-// ============================================================
-//  المكوّن الرئيسي
-// ============================================================
-const Battles: React.FC = () => {
-  // --- الحالة (State) ---
   const [battles, setBattles] = useState<Battle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const [filters, setFilters] = useState<FilterState>({
-    search: '',
-    year: 'all',
-    region: 'all',
-  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState('');
+  const [selectedType, setSelectedType] = useState('');
 
-  const [visibleCount, setVisibleCount] = useState(9);
-  const ITEMS_PER_PAGE = 9;
-
-  // --- جلب البيانات (Data Fetching) ---
-  const fetchBattles = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
+  const loadBattles = async () => {
     try {
-      if (!supabase) {
-        throw new Error('لم يتم تكوين الاتصال بقاعدة بيانات Supabase.');
+      setLoading(true);
+
+      if (!hasSupabaseCreds) {
+        console.error('Supabase credentials are missing');
+        setBattles([]);
+        return;
       }
 
-      const { data, error: queryError } = await supabase
+      const { data, error } = await supabase
         .from('battles')
-        .select('*') // تحديد الحقول المطلوبة بدلاً من سردها كلها
-        .order('year', { ascending: true, nullsFirst: false });
+        .select('*')
+        .order('year', { ascending: true });
 
-      if (queryError) throw queryError;
+      if (error) {
+        console.error('Error loading battles:', error);
+        return;
+      }
 
-      console.log('📜 Battles loaded:', data?.length || 0);
-      setBattles((data || []) as Battle[]);
-    } catch (err) {
-      console.error('❌ Error fetching battles:', err);
-      setError(err instanceof Error ? err.message : 'حدث خطأ غير معروف');
-      setBattles([]);
+      setBattles(data || []);
+    } catch (error) {
+      console.error('Unexpected error:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    fetchBattles();
-  }, [fetchBattles]);
-
-  // --- البيانات المشتقة (Derived Data) ---
-  const availableYears = useMemo(() => {
-    const years = battles
-      .map(b => b.year)
-      .filter((year): year is number => year !== null && year !== undefined)
-      .sort((a, b) => a - b);
-
-    return [...new Set(years)].map(String);
-  }, [battles]);
-
-  const availableRegions = useMemo(() => {
-    const regions = battles
-      .map(b => getRegionDisplayName(b.region_id))
-      .filter((name): name is string => name !== 'غير محددة');
-
-    return [...new Set(regions)].sort((a, b) => a.localeCompare(b, 'ar'));
-  }, [battles]);
-
-  // --- التصفية (Filtering Logic) ---
-  const filteredBattles = useMemo(() => {
-    const { search, year, region } = filters;
-    const searchLower = search.trim().toLowerCase();
-
-    return battles.filter(battle => {
-      // تصفية حسب السنة
-      if (year !== 'all' && String(battle.year) !== year) {
-        return false;
-      }
-
-      // تصفية حسب المنطقة
-      const regionName = getRegionDisplayName(battle.region_id);
-      if (region !== 'all' && regionName !== region) {
-        return false;
-      }
-
-      // تصفية حسب البحث النصي
-      if (searchLower) {
-        return (
-          battle.title?.toLowerCase().includes(searchLower) ||
-          battle.description?.toLowerCase().includes(searchLower) ||
-          String(battle.year || '').includes(searchLower) ||
-          regionName.toLowerCase().includes(searchLower)
-        );
-      }
-
-      return true;
-    });
-  }, [battles, filters]);
-
-  // --- التحكم في الترحيل (Pagination) ---
-  const displayedBattles = useMemo(
-    () => filteredBattles.slice(0, visibleCount),
-    [filteredBattles, visibleCount]
-  );
-
-  const hasMore = visibleCount < filteredBattles.length;
-
-  // --- معالجة تغيير الفلاتر (Filter Handlers) ---
-  const handleFilterChange = useCallback(
-    (key: keyof FilterState, value: string) => {
-      setFilters(prev => ({ ...prev, [key]: value }));
-      setVisibleCount(ITEMS_PER_PAGE);
-    },
-    []
-  );
-
-  const resetFilters = useCallback(() => {
-    setFilters({ search: '', year: 'all', region: 'all' });
-    setVisibleCount(ITEMS_PER_PAGE);
+    loadBattles();
   }, []);
 
-  const hasActiveFilters = filters.search.trim() !== '' ||
-                          filters.year !== 'all' ||
-                          filters.region !== 'all';
+  /* استخراج السنوات الموجودة فعليًا */
+  const years = useMemo(() => {
+    return [...new Set(battles.map((battle) => String(battle.year)))]
+      .filter(Boolean)
+      .sort((a, b) => Number(a) - Number(b));
+  }, [battles]);
 
-  // --- زيادة عدد العناصر المعروضة ---
-  const loadMore = useCallback(() => {
-    setVisibleCount(prev => Math.min(prev + ITEMS_PER_PAGE, filteredBattles.length));
-  }, [filteredBattles.length]);
+  /* استخراج المناطق المكتوبة في Supabase */
+  const regions = useMemo(() => {
+    return [...new Set(battles.map((battle) => battle.region_id))]
+      .filter(Boolean)
+      .sort();
+  }, [battles]);
 
-  // ============================================================
-  //  حالات التحميل والخطأ (Loading & Error States)
-  // ============================================================
-  if (loading) {
-    return <LoadingState />;
-  }
+  /* استخراج أنواع الأحداث */
+  const eventTypes = useMemo(() => {
+    return [...new Set(battles.map((battle) => battle.event_type))]
+      .filter(Boolean)
+      .sort();
+  }, [battles]);
 
-  if (error) {
-    return <ErrorState error={error} onRetry={fetchBattles} />;
-  }
+  /* الفلترة */
+  const filteredBattles = useMemo(() => {
+    return battles.filter((battle) => {
+      const search = searchTerm.trim().toLowerCase();
 
-  // ============================================================
-  //  العرض الأساسي (Main Render)
-  // ============================================================
+      const matchesSearch =
+        !search ||
+        battle.title?.toLowerCase().includes(search) ||
+        battle.description?.toLowerCase().includes(search) ||
+        battle.region_id?.toLowerCase().includes(search);
+
+      const matchesYear =
+        !selectedYear ||
+        String(battle.year) === selectedYear;
+
+      const matchesRegion =
+        !selectedRegion ||
+        battle.region_id === selectedRegion;
+
+      const matchesType =
+        !selectedType ||
+        battle.event_type === selectedType;
+
+      return (
+        matchesSearch &&
+        matchesYear &&
+        matchesRegion &&
+        matchesType
+      );
+    });
+  }, [
+    battles,
+    searchTerm,
+    selectedYear,
+    selectedRegion,
+    selectedType,
+  ]);
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedYear('');
+    setSelectedRegion('');
+    setSelectedType('');
+  };
+
+  const hasActiveFilters =
+    searchTerm ||
+    selectedYear ||
+    selectedRegion ||
+    selectedType;
+
   return (
-    <div dir="rtl" className="min-h-screen bg-[#050505] text-white font-sans pb-24 overflow-x-hidden">
-      {/* خلفية متحركة */}
-      <BackgroundGlow />
-
-      {/* الهيدر */}
-      <Header />
-
-      {/* القسم الرئيسي */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8">
-        {/* الهيرو (Hero) */}
-        <HeroSection totalBattles={battles.length} totalYears={availableYears.length} />
-
-        {/* الفلاتر (Filters) */}
-        <FiltersSection
-          filters={filters}
-          availableYears={availableYears}
-          availableRegions={availableRegions}
-          totalMatches={filteredBattles.length}
-          hasActiveFilters={hasActiveFilters}
-          onFilterChange={handleFilterChange}
-          onReset={resetFilters}
-        />
-
-        {/* قائمة المعارك (Battles Grid) */}
-        <BattlesGrid
-          battles={displayedBattles}
-          hasMore={hasMore}
-          onLoadMore={loadMore}
-        />
-      </div>
-    </div>
-  );
-};
-
-// ============================================================
-//  المكوّنات الفرعية (Sub-Components)
-// ============================================================
-
-// --- حالة التحميل ---
-const LoadingState: React.FC = () => (
-  <div dir="rtl" className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
-    <div className="text-center">
-      <div className="w-20 h-20 mx-auto rounded-3xl border border-[#c6a66b]/20 bg-white/[0.03] flex items-center justify-center">
-        <Swords size={34} className="text-[#c6a66b] animate-pulse" />
-      </div>
-      <h1 className="mt-6 text-2xl font-black font-serif">جاري فتح سجل المعارك...</h1>
-      <p className="mt-2 text-xs text-gray-500">جلب المعارك من الأرشيف الوطني</p>
-      <div className="mt-6 w-48 h-1 mx-auto rounded-full bg-white/5 overflow-hidden">
-        <motion.div
-          className="h-full w-1/2 bg-[#c6a66b]"
-          animate={{ x: ['120%', '-220%'] }}
-          transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
-        />
-      </div>
-    </div>
-  </div>
-);
-
-// --- حالة الخطأ ---
-interface ErrorStateProps {
-  error: string;
-  onRetry: () => void;
-}
-
-const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => (
-  <div dir="rtl" className="min-h-screen bg-[#050505] text-white flex items-center justify-center px-5">
-    <div className="w-full max-w-lg rounded-3xl border border-red-500/20 bg-white/[0.02] p-8 text-center">
-      <div className="mx-auto w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-        <AlertTriangle size={30} className="text-red-400" />
-      </div>
-      <h1 className="mt-6 text-2xl font-black font-serif">تعذر تحميل سجل المعارك</h1>
-      <p className="mt-3 text-sm text-gray-500 leading-7">{error}</p>
-      <button
-        onClick={onRetry}
-        className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#c6a66b] px-6 py-3 text-xs font-black text-black"
-      >
-        <RotateCcw size={14} />
-        إعادة المحاولة
-      </button>
-    </div>
-  </div>
-);
-
-// --- الخلفية المتوهجة ---
-const BackgroundGlow: React.FC = () => (
-  <div className="fixed inset-0 pointer-events-none z-0">
-    <div className="absolute top-0 right-1/4 w-[520px] h-[520px] rounded-full bg-[#c6a66b]/[0.035] blur-[150px]" />
-    <div className="absolute bottom-0 left-1/4 w-[420px] h-[420px] rounded-full bg-[#1f5f3a]/[0.045] blur-[140px]" />
-  </div>
-);
-
-// --- الهيدر ---
-const Header: React.FC = () => (
-  <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-[#050505]/90 backdrop-blur-xl">
-    <div className="max-w-7xl mx-auto px-4 md:px-8 h-[68px] flex items-center justify-between">
-      <Link
-        to="/"
-        className="group flex items-center gap-2.5 text-xs font-bold text-gray-300 hover:text-[#c6a66b] transition-colors"
-      >
-        <span className="w-9 h-9 rounded-xl border border-white/10 bg-white/[0.03] flex items-center justify-center group-hover:border-[#c6a66b]/40 group-hover:bg-[#c6a66b]/10 transition-all">
-          <ArrowRight size={15} className="text-[#c6a66b]" />
-        </span>
-        العودة للرئيسية
-      </Link>
-      <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.025] text-[11px] text-gray-400">
-        <Shield size={12} className="text-[#c6a66b]" />
-        الأرشيف العسكري الوطني
-      </div>
-    </div>
-  </header>
-);
-
-// --- قسم الهيرو ---
-interface HeroSectionProps {
-  totalBattles: number;
-  totalYears: number;
-}
-
-const HeroSection: React.FC<HeroSectionProps> = ({ totalBattles, totalYears }) => (
-  <section className="relative z-10 pt-16 md:pt-24 pb-12">
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8 }}
+    <div
+      dir="rtl"
+      className="min-h-screen bg-[#050505] text-white overflow-hidden"
     >
-      <div className="flex items-center justify-end gap-3 mb-5">
-        <div className="w-10 h-px bg-[#c6a66b]/40" />
-        <span className="text-[10px] md:text-xs tracking-[0.28em] text-[#c6a66b] font-mono">
-          HISTORICAL BATTLE ARCHIVE
-        </span>
-      </div>
+      {/* ================= HERO ================= */}
 
-      <h1 className="font-serif font-black text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-tight">
-        سجل <span className="text-[#c6a66b]">المعارك</span>
-      </h1>
-      <p className="mt-5 text-base md:text-xl text-gray-400 font-serif">أحداث صنعت تاريخ الجزائر</p>
+      <section className="relative min-h-[72vh] flex items-end overflow-hidden">
 
-      {/* الإحصائيات */}
-      <div className="mt-10 grid grid-cols-3 gap-2.5 md:gap-4 max-w-2xl mr-auto">
-        <StatCard value="58+" label="ولاية" color="text-[#1f7a4a]" />
-        <StatCard value={totalBattles} label="معركة مؤرشفة" color="text-[#c6a66b]" />
-        <StatCard value={totalYears} label="سنة" color="text-white" />
-      </div>
-    </motion.div>
-  </section>
-);
+        {/* Background */}
+        <div className="absolute inset-0">
 
-interface StatCardProps {
-  value: number | string;
-  label: string;
-  color: string;
-}
-
-const StatCard: React.FC<StatCardProps> = ({ value, label, color }) => (
-  <div className="rounded-2xl border border-white/10 bg-white/[0.025] px-3 py-4 md:px-5 md:py-5">
-    <div className={`text-2xl md:text-4xl font-black font-mono ${color}`}>
-      {value}
-    </div>
-    <div className="mt-1 text-[10px] md:text-xs text-gray-500">{label}</div>
-  </div>
-);
-
-// --- قسم الفلاتر ---
-interface FiltersSectionProps {
-  filters: FilterState;
-  availableYears: string[];
-  availableRegions: string[];
-  totalMatches: number;
-  hasActiveFilters: boolean;
-  onFilterChange: (key: keyof FilterState, value: string) => void;
-  onReset: () => void;
-}
-
-const FiltersSection: React.FC<FiltersSectionProps> = ({
-  filters,
-  availableYears,
-  availableRegions,
-  totalMatches,
-  hasActiveFilters,
-  onFilterChange,
-  onReset,
-}) => (
-  <section className="relative z-20">
-    <div className="rounded-3xl border border-white/10 bg-[#0a0a0a]/95 backdrop-blur-xl p-4 md:p-5 shadow-2xl">
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-        {/* حقل البحث */}
-        <SearchInput
-          value={filters.search}
-          onChange={(val) => onFilterChange('search', val)}
-        />
-
-        {/* قائمة السنوات */}
-        <FilterSelect
-          value={filters.year}
-          onChange={(val) => onFilterChange('year', val)}
-          options={[
-            { value: 'all', label: 'كل السنوات' },
-            ...availableYears.map(year => ({ value: year, label: `سنة ${year}` })),
-          ]}
-          icon={<Calendar size={15} className="text-[#c6a66b]" />}
-        />
-
-        {/* قائمة المناطق */}
-        <FilterSelect
-          value={filters.region}
-          onChange={(val) => onFilterChange('region', val)}
-          options={[
-            { value: 'all', label: 'كل المناطق' },
-            ...availableRegions.map(region => ({ value: region, label: region })),
-          ]}
-          icon={<MapPin size={15} className="text-[#1f7a4a]" />}
-        />
-      </div>
-
-      {/* شريط المعلومات السفلي */}
-      <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between gap-3">
-        <div className="text-xs text-gray-500">
-          <span className="font-mono font-bold text-[#c6a66b]">{totalMatches}</span> معركة مطابقة
-        </div>
-        {hasActiveFilters && (
-          <button
-            onClick={onReset}
-            className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] text-gray-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+          <motion.div
+            initial={{ scale: 1 }}
+            animate={{ scale: 1.08 }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              repeatType: 'reverse',
+              ease: 'easeInOut',
+            }}
+            className="absolute inset-0"
           >
-            <RotateCcw size={12} />
-            إعادة ضبط
-          </button>
-        )}
-      </div>
-    </div>
-  </section>
-);
+            <img
+              src="https://images.unsplash.com/photo-1579912437765-e8e5b7d0f7f3?q=90&w=2000"
+              alt="تاريخ الثورة الجزائرية"
+              className="w-full h-full object-cover grayscale brightness-[0.28] contrast-125"
+            />
+          </motion.div>
 
-// --- مكوّن حقل البحث ---
-interface SearchInputProps {
-  value: string;
-  onChange: (value: string) => void;
-}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/70 to-black/30" />
 
-const SearchInput: React.FC<SearchInputProps> = ({ value, onChange }) => (
-  <div className="md:col-span-6 relative">
-    <Search size={17} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-    <input
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder="ابحث في أرشيف المعارك..."
-      className="w-full h-12 rounded-2xl border border-white/10 bg-white/[0.035] pr-11 pl-10 text-sm text-white placeholder:text-gray-600 outline-none focus:border-[#c6a66b]/50 transition-colors"
-    />
-    {value && (
-      <button
-        onClick={() => onChange('')}
-        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
-      >
-        <X size={15} />
-      </button>
-    )}
-  </div>
-);
+          <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-transparent to-[#050505]/40" />
 
-// --- مكوّن القائمة المنسدلة ---
-interface FilterSelectProps {
-  value: string;
-  onChange: (value: string) => void;
-  options: { value: string; label: string }[];
-  icon: React.ReactNode;
-}
+          {/* Cinematic glow */}
+          <div className="absolute bottom-0 right-[20%] w-[600px] h-[400px] bg-[#c6a66b]/10 blur-[180px] rounded-full" />
+        </div>
 
-const FilterSelect: React.FC<FilterSelectProps> = ({ value, onChange, options, icon }) => (
-  <div className="md:col-span-3 relative">
-    {icon && <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">{icon}</div>}
-    <ChevronDown size={13} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="appearance-none w-full h-12 rounded-2xl border border-white/10 bg-white/[0.035] pr-10 pl-8 text-sm text-white outline-none cursor-pointer focus:border-[#c6a66b]/50"
-    >
-      {options.map(opt => (
-        <option key={opt.value} value={opt.value} className="bg-[#0a0a0a]">
-          {opt.label}
-        </option>
-      ))}
-    </select>
-  </div>
-);
+        {/* Content */}
 
-// --- شبكة المعارك ---
-interface BattlesGridProps {
-  battles: Battle[];
-  hasMore: boolean;
-  onLoadMore: () => void;
-}
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-12 pb-20">
 
-const BattlesGrid: React.FC<BattlesGridProps> = ({ battles, hasMore, onLoadMore }) => {
-  if (battles.length === 0) {
-    return <EmptyState />;
-  }
-
-  return (
-    <main className="mt-10 md:mt-14">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-7">
-        <AnimatePresence mode="popLayout">
-          {battles.map((battle, index) => (
-            <BattleCard key={battle.id} battle={battle} index={index} />
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {hasMore && (
-        <div className="flex justify-center pt-10">
-          <button
-            onClick={onLoadMore}
-            className="group flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.035] px-7 py-4 text-xs md:text-sm font-black hover:border-[#c6a66b]/40 hover:bg-white/[0.06] transition-all"
+          <motion.div
+            initial={{ opacity: 0, y: 35 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 1.2,
+              ease: [0.22, 1, 0.36, 1],
+            }}
           >
-            <Layers size={16} className="text-[#c6a66b] group-hover:rotate-12 transition-transform" />
-            عرض المزيد من المعارك
-          </button>
-        </div>
-      )}
-    </main>
-  );
-};
+            <div className="flex items-center gap-3 mb-6">
 
-// --- بطاقة المعركة ---
-interface BattleCardProps {
-  battle: Battle;
-  index: number;
+              <div className="w-10 h-[1px] bg-[#c6a66b]" />
+
+              <span className="text-[#c6a66b] text-xs tracking-[0.35em] font-bold">
+                ARCHIVE OF BATTLES
+              </span>
+
+            </div>
+
+            <div className="flex items-center gap-5 mb-6">
+
+              <div className="w-16 h-16 rounded-2xl border border-[#c6a66b]/30 bg-[#c6a66b]/10 flex items-center justify-center">
+
+                <Swords
+                  size={30}
+                  className="text-[#c6a66b]"
+                />
+
+              </div>
+
+              <div>
+
+                <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight">
+
+                  المعارك
+
+                </h1>
+
+              </div>
+
+            </div>
+
+            <p className="text-gray-300 text-lg md:text-2xl leading-relaxed max-w-3xl">
+
+              سجلٌ رقمي يوثق المعارك والاشتباكات والعمليات التي صنعت تاريخ الثورة الجزائرية.
+
+            </p>
+
+            <div className="flex items-center gap-6 mt-10 text-sm text-gray-400">
+
+              <div>
+
+                <span className="text-[#c6a66b] font-black text-xl">
+                  {battles.length}
+                </span>
+
+                <span className="mr-2">
+                  حدث موثق
+                </span>
+
+              </div>
+
+              <div className="w-px h-5 bg-white/10" />
+
+              <div>
+                ذاكرة المقاومة الجزائرية
+              </div>
+
+            </div>
+
+          </motion.div>
+
+        </div>
+
+      </section>
+
+      {/* ================= SEARCH & FILTER ================= */}
+
+      <section className="relative z-20 -mt-10 px-5 lg:px-10">
+
+        <div className="max-w-7xl mx-auto">
+
+          <div className="bg-[#0b0b0b]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-5 lg:p-7 shadow-2xl">
+
+            {/* Search */}
+
+            <div className="relative mb-5">
+
+              <Search
+                size={20}
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-[#c6a66b]"
+              />
+
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) =>
+                  setSearchTerm(e.target.value)
+                }
+                placeholder="ابحث عن معركة، منطقة أو حدث تاريخي..."
+                className="w-full bg-white/[0.04] border border-white/10 focus:border-[#c6a66b]/60 rounded-2xl py-5 pr-14 pl-5 text-sm lg:text-base text-white outline-none transition-all placeholder:text-gray-600"
+              />
+
+            </div>
+
+            {/* Filters */}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+              {/* Year */}
+
+              <div className="relative">
+
+                <select
+                  value={selectedYear}
+                  onChange={(e) =>
+                    setSelectedYear(e.target.value)
+                  }
+                  className="w-full appearance-none bg-white/[0.04] border border-white/10 hover:border-white/20 focus:border-[#c6a66b]/60 rounded-xl py-4 px-5 text-xs text-white outline-none cursor-pointer"
+                >
+
+                  <option
+                    value=""
+                    className="bg-[#111]"
+                  >
+                    جميع السنوات
+                  </option>
+
+                  {years.map((year) => (
+
+                    <option
+                      key={year}
+                      value={year}
+                      className="bg-[#111]"
+                    >
+                      {year}
+                    </option>
+
+                  ))}
+
+                </select>
+
+                <Calendar
+                  size={15}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+                />
+
+              </div>
+
+              {/* Region */}
+
+              <div className="relative">
+
+                <select
+                  value={selectedRegion}
+                  onChange={(e) =>
+                    setSelectedRegion(e.target.value)
+                  }
+                  className="w-full appearance-none bg-white/[0.04] border border-white/10 hover:border-white/20 focus:border-[#c6a66b]/60 rounded-xl py-4 px-5 text-xs text-white outline-none cursor-pointer"
+                >
+
+                  <option
+                    value=""
+                    className="bg-[#111]"
+                  >
+                    جميع المناطق
+                  </option>
+
+                  {regions.map((region) => (
+
+                    <option
+                      key={region}
+                      value={region}
+                      className="bg-[#111]"
+                    >
+                      {region}
+                    </option>
+
+                  ))}
+
+                </select>
+
+                <MapPin
+                  size={15}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+                />
+
+              </div>
+
+              {/* Event type */}
+
+              <div className="relative">
+
+                <select
+                  value={selectedType}
+                  onChange={(e) =>
+                    setSelectedType(e.target.value)
+                  }
+                  className="w-full appearance-none bg-white/[0.04] border border-white/10 hover:border-white/20 focus:border-[#c6a66b]/60 rounded-xl py-4 px-5 text-xs text-white outline-none cursor-pointer"
+                >
+
+                  <option
+                    value=""
+                    className="bg-[#111]"
+                  >
+                    جميع أنواع الأحداث
+                  </option>
+
+                  {eventTypes.map((type) => (
+
+                    <option
+                      key={type}
+                      value={type}
+                      className="bg-[#111]"
+                    >
+                      {type}
+                    </option>
+
+                  ))}
+
+                </select>
+
+                <SlidersHorizontal
+                  size={15}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+                />
+
+              </div>
+
+              {/* Reset */}
+
+              <button
+                onClick={clearFilters}
+                disabled={!hasActiveFilters}
+                className="flex items-center justify-center gap-2 rounded-xl border border-white/10 hover:border-[#c6a66b]/50 hover:bg-[#c6a66b]/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-xs font-bold"
+              >
+
+                <X size={16} />
+
+                مسح الفلاتر
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      {/* ================= BATTLES ================= */}
+
+      <section className="max-w-7xl mx-auto px-5 lg:px-10 py-24">
+
+        {/* Header */}
+
+        <div className="flex items-end justify-between mb-12">
+
+          <div>
+
+            <p className="text-[#c6a66b] text-xs tracking-[0.3em] mb-3">
+              HISTORICAL RECORDS
+            </p>
+
+            <h2 className="text-3xl lg:text-5xl font-black">
+              السجل العسكري
+            </h2>
+
+          </div>
+
+          <p className="text-gray-500 text-xs">
+
+            {filteredBattles.length} نتيجة
+
+          </p>
+
+        </div>
+
+        {/* Loading */}
+
+        {loading && (
+
+          <div className="min-h-[400px] flex flex-col items-center justify-center gap-5">
+
+            <Loader2
+              size={35}
+              className="animate-spin text-[#c6a66b]"
+            />
+
+            <span className="text-gray-500 text-sm">
+              جاري استرجاع السجل التاريخي...
+            </span>
+
+          </div>
+
+        )}
+
+        {/* Empty */}
+
+        {!loading && filteredBattles.length === 0 && (
+
+          <div className="border border-white/5 rounded-3xl py-24 text-center bg-white/[0.01]">
+
+            <Swords
+              size={40}
+              className="mx-auto mb-5 text-gray-700"
+            />
+
+            <h3 className="text-xl font-bold text-gray-400">
+              لا توجد نتائج
+            </h3>
+
+            <p className="text-sm text-gray-600 mt-3">
+              حاول تغيير كلمات البحث أو خيارات الفلترة.
+            </p>
+
+          </div>
+
+        )}
+
+        {/* Grid */}
+
+        {!loading && filteredBattles.length > 0 && (
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7">
+
+            <AnimatePresence>
+
+              {filteredBattles.map((battle, index) => (
+
+                <motion.article
+                  key={battle.id}
+                  initial={{
+                    opacity: 0,
+                    y: 35,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  transition={{
+                    duration: 0.7,
+                    delay: index * 0.05,
+                  }}
+                  onClick={() =>
+  navigate(`/journey/${battle.id}`)
 }
+                  className="group relative h-[520px] rounded-3xl overflow-hidden cursor-pointer border border-white/5 hover:border-[#c6a66b]/40 transition-all duration-700"
+                >
 
-const BattleCard: React.FC<BattleCardProps> = ({ battle, index }) => {
-  const regionName = getRegionDisplayName(battle.region_id);
-  const image = battle.hero_image || battle.image;
+                  {/* Image */}
 
-  return (
-    <motion.article
-      layout
-      initial={{ opacity: 0, y: 22 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ duration: 0.4, delay: (index % 6) * 0.06 }}
-      className="group overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0a] shadow-xl hover:border-[#c6a66b]/45 transition-all"
-    >
-      {/* صورة المعركة */}
-      <div className="relative h-56 overflow-hidden">
-        {image ? (
-          <img
-            src={image}
-            alt={battle.title}
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover grayscale brightness-[0.62] contrast-110 group-hover:grayscale-0 group-hover:brightness-[0.82] group-hover:scale-105 transition-all duration-700"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#151515] to-[#050505] flex items-center justify-center">
-            <Swords size={42} className="text-white/10" />
+                  <img
+                    src={
+                      battle.image ||
+                      battle.hero_image ||
+                      'https://images.unsplash.com/photo-1579912437765-e8e5b7d0f7f3?q=90&w=1200'
+                    }
+                    alt={battle.title}
+                    className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.28] group-hover:grayscale-0 group-hover:brightness-[0.6] group-hover:scale-110 transition-all duration-[1200ms]"
+                  />
+
+                  {/* Overlay */}
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/10" />
+
+                  {/* Gold line */}
+
+                  <div className="absolute top-0 right-0 w-full h-[2px] bg-gradient-to-l from-transparent via-[#c6a66b] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                  {/* Content */}
+
+                  <div className="absolute inset-0 p-8 flex flex-col justify-between">
+
+                    {/* Top */}
+
+                    <div className="flex justify-between items-start">
+
+                      <div className="px-4 py-2 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-[#c6a66b] text-xs font-black">
+
+                        {battle.year}
+
+                      </div>
+
+                      {battle.event_type && (
+
+                        <div className="px-3 py-2 rounded-full bg-[#c6a66b]/10 border border-[#c6a66b]/20 text-[#d8bd86] text-[10px]">
+
+                          {battle.event_type}
+
+                        </div>
+
+                      )}
+
+                    </div>
+
+                    {/* Bottom */}
+
+                    <div>
+
+                      {battle.region_id && (
+
+                        <div className="flex items-center gap-2 text-[#c6a66b] text-xs mb-4">
+
+                          <MapPin size={14} />
+
+                          <span>
+                            {battle.region_id}
+                          </span>
+
+                        </div>
+
+                      )}
+
+                      <h3 className="text-3xl font-black leading-tight mb-4 group-hover:text-[#d8bd86] transition-colors">
+
+                        {battle.title}
+
+                      </h3>
+
+                      <p className="text-sm text-gray-400 leading-relaxed line-clamp-3">
+
+                        {battle.description}
+
+                      </p>
+
+                      <div className="flex items-center gap-3 mt-7 text-sm font-bold text-white group-hover:text-[#c6a66b] transition-colors">
+
+                        <span>
+                          استكشف تفاصيل الحدث
+                        </span>
+
+                        <ArrowLeft
+                          size={18}
+                          className="group-hover:-translate-x-2 transition-transform"
+                        />
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </motion.article>
+
+              ))}
+
+            </AnimatePresence>
+
           </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-black/25 to-transparent" />
 
-        {/* البطاقات العلوية (السنة والمنطقة) */}
-        <div className="absolute top-4 right-4 left-4 flex items-center justify-between gap-2">
-          {battle.year && (
-            <span className="px-3 py-1 rounded-full bg-black/70 border border-white/10 text-[#c6a66b] text-[11px] font-mono backdrop-blur-md">
-              {battle.year} م
-            </span>
-          )}
-          <span className="max-w-[150px] truncate flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 border border-white/10 text-gray-300 text-[10px] backdrop-blur-md">
-            <MapPin size={10} className="text-[#1f7a4a] shrink-0" />
-            {regionName}
-          </span>
-        </div>
-      </div>
-
-      {/* المحتوى النصي */}
-      <div className="p-5 md:p-6">
-        <h2 className="font-serif font-black text-xl md:text-2xl leading-snug text-white group-hover:text-[#c6a66b] transition-colors">
-          {battle.title}
-        </h2>
-
-        {battle.event_type && (
-          <div className="mt-3">
-            <span className="inline-flex items-center rounded-full border border-[#c6a66b]/20 bg-[#c6a66b]/10 px-3 py-1.5 text-[10px] md:text-xs font-bold text-[#c6a66b]">
-              نوع الحدث: {battle.event_type}
-            </span>
-          </div>
         )}
 
-        <p className="mt-2.5 text-xs md:text-sm leading-7 text-gray-500 line-clamp-3">
-          {battle.description || 'لا يوجد وصف لهذه المعركة حالياً.'}
+      </section>
+
+      {/* ================= FOOTER TEXT ================= */}
+
+      <section className="border-t border-white/5 py-16 text-center">
+
+        <p className="text-[#c6a66b] font-serif text-2xl mb-4">
+          ذاكرة لا تموت.
         </p>
 
-        <div className="mt-5 pt-4 border-t border-white/[0.06]">
-          <Link
-            to={`/journey/${battle.id}`}
-            className="w-full h-11 rounded-xl bg-white/[0.035] border border-white/10 flex items-center justify-center gap-2 text-xs font-bold text-gray-300 group-hover:bg-[#c6a66b] group-hover:border-[#c6a66b] group-hover:text-black transition-all"
-          >
-            <span>اكتشف التفاصيل</span>
-            <ChevronLeft size={15} className="group-hover:-translate-x-1 transition-transform" />
-          </Link>
-        </div>
-      </div>
-    </motion.article>
+        <p className="text-gray-600 text-xs tracking-widest">
+          DHAKIRA DZ — ARCHIVE OF ALGERIAN MEMORY
+        </p>
+
+      </section>
+
+    </div>
   );
 };
-
-// --- حالة عدم وجود نتائج ---
-const EmptyState: React.FC = () => (
-  <div className="max-w-lg mx-auto rounded-3xl border border-white/10 bg-[#0a0a0a] p-12 text-center mt-10">
-    <Swords size={38} className="mx-auto text-gray-700" />
-    <h3 className="mt-5 font-serif text-xl font-black">لم نعثر على أي معارك</h3>
-    <p className="mt-2 text-xs leading-6 text-gray-500">لا توجد نتائج مطابقة للبحث أو الفلاتر الحالية.</p>
-  </div>
-);
 
 export default Battles;
