@@ -31,8 +31,6 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ characters, onAdd, 
   const [birthDate, setBirthDate] = useState('');
   const [martyrDate, setMartyrDate] = useState('');
   const [birthPlace, setBirthPlace] = useState('');
-  const [rank, setRank] = useState('');
-  const [nickname, setNickname] = useState('');
   const [quote, setQuote] = useState('');
   const [achievements, setAchievements] = useState('');
 
@@ -73,8 +71,6 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ characters, onAdd, 
   birth_date: birthDate,
   martyr_date: martyrDate,
   birth_place: birthPlace,
-  rank,
-  nickname,
   quote,
   achievements
 });
@@ -87,8 +83,6 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ characters, onAdd, 
   birth_date: birthDate,
   martyr_date: martyrDate,
   birth_place: birthPlace,
-  rank,
-  nickname,
   quote,
   achievements
 });
@@ -247,14 +241,7 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ characters, onAdd, 
                   />
                 </div>
 
-<div className="space-y-2">
-  <label>اللقب</label>
-  <input
-    value={nickname}
-    onChange={(e) => setNickname(e.target.value)}
-    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4"
-  />
-</div>
+
 
 <div className="space-y-2">
   <label>تاريخ الميلاد</label>
@@ -283,14 +270,7 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ characters, onAdd, 
   />
 </div>
 
-<div className="space-y-2">
-  <label>الرتبة</label>
-  <input
-    value={rank}
-    onChange={(e) => setRank(e.target.value)}
-    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4"
-  />
-</div>
+
 
 <div className="space-y-2">
   <label>مقولة الشهيد</label>

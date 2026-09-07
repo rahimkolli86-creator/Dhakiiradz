@@ -46,6 +46,7 @@ const BattleManager: React.FC<BattleManagerProps> = ({ battles, onAdd, onUpdate,
   const [image, setImage] = useState('');
   const [heroImage, setHeroImage] = useState('');
   const [eventType, setEventType] = useState('');
+  const [status, setStatus] = useState('approved');
   const [sources, setSources] = useState('');
   const [details, setDetails] = useState('');
   const [relatedBattles, setRelatedBattles] = useState('');
@@ -71,6 +72,7 @@ const BattleManager: React.FC<BattleManagerProps> = ({ battles, onAdd, onUpdate,
     setSources('');
     setDetails('');
     setIsModalOpen(true);
+    setStatus('approved');
   };
 
   const openEditModal = (battle: Battle) => {
@@ -82,6 +84,7 @@ const BattleManager: React.FC<BattleManagerProps> = ({ battles, onAdd, onUpdate,
     setImage(battle.image || '');
     setHeroImage(battle.hero_image || '');
     setEventType(battle.event_type || '');
+    setStatus(battle.status || 'approved');
 
 setSources(
   Array.isArray(battle.sources)
@@ -108,6 +111,7 @@ setDetails(
   year,
   region_id: regionId,
   description,
+  status,
   image,
   hero_image: heroImage,
   event_type: eventType,
@@ -131,8 +135,9 @@ setDetails(
     onAdd({
       title,
       year,
-     region_id: regionId,
+      region_id: regionId,
       description,
+      status,
       image,
       hero_image: heroImage,
       event_type: eventType,
@@ -371,6 +376,30 @@ setDetails(
   </select>
 </div>
 
+ {/* حالة التوثيق */}
+<div className="space-y-2">
+  <label className="text-xs font-bold text-gray-400 block">
+    حالة التوثيق
+  </label>
+
+  <select
+    value={status}
+    onChange={(e) => setStatus(e.target.value)}
+    className="w-full bg-white/5 border border-white/10 focus:border-[#c6a66b] rounded-xl py-3 px-4 text-xs text-white outline-none transition-all"
+  >
+    <option value="approved" className="bg-[#0b0b0b]">
+      🟢 موثق ومعتمد
+    </option>
+
+    <option value="academic" className="bg-[#0b0b0b]">
+      🟠 موثق أكاديمياً
+    </option>
+
+    <option value="weak_source" className="bg-[#0b0b0b]">
+      🔴 مصدر ضعيف
+    </option>
+  </select>
+</div>
 
                 {/* Description */}
                 <div className="space-y-2">

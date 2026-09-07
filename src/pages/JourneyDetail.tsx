@@ -159,9 +159,9 @@ const JourneyDetail: React.FC = () => {
   );
 
   const details = useMemo(
-    () => normalizeObject(battle?.details),
-    [battle?.details]
-  );
+  () => normalizeList(battle?.details),
+  [battle?.details]
+);
 
   const sourceItems = useMemo(
     () => normalizeList(battle?.sources),
@@ -488,7 +488,6 @@ const JourneyDetail: React.FC = () => {
                 </div>
               )}
             </article>
-
             {/* Sidebar */}
             <aside className="space-y-5">
               <div className="rounded-3xl border border-white/10 bg-[#0a0a0a] p-5 shadow-xl">
@@ -497,43 +496,81 @@ const JourneyDetail: React.FC = () => {
                 </div>
 
                 <div className="space-y-3">
+                  {/* السنة */}
                   <div className="flex items-center gap-3 rounded-2xl bg-white/[0.02] border border-white/5 p-4">
                     <Calendar size={17} className="text-[#c6a66b]" />
+
                     <div>
-                      <div className="text-[10px] text-gray-500">السنة</div>
+                      <div className="text-[10px] text-gray-500">
+                        السنة
+                      </div>
+
                       <div className="text-sm font-bold text-white">
                         {battle.year ? `${battle.year} م` : 'غير محددة'}
                       </div>
                     </div>
                   </div>
 
+                  {/* المنطقة */}
                   <div className="flex items-center gap-3 rounded-2xl bg-white/[0.02] border border-white/5 p-4">
                     <MapPin size={17} className="text-[#1f7a4a]" />
+
                     <div>
-                      <div className="text-[10px] text-gray-500">المنطقة</div>
+                      <div className="text-[10px] text-gray-500">
+                        المنطقة
+                      </div>
+
                       <div className="text-sm font-bold text-white">
                         {regionName}
                       </div>
                     </div>
                   </div>
 
+                  {/* حالة التوثيق */}
                   <div className="flex items-center gap-3 rounded-2xl bg-white/[0.02] border border-white/5 p-4">
-                    <Shield size={17} className="text-[#c6a66b]" />
+                    <Shield
+                      size={17}
+                      className={
+                        battle.status === 'academic'
+                          ? 'text-orange-400'
+                          : battle.status === 'weak_source'
+                          ? 'text-red-500'
+                          : 'text-brand-green'
+                      }
+                    />
+
                     <div>
-                      <div className="text-[10px] text-gray-500">الحالة</div>
-                      <div className="text-sm font-bold text-brand-green">
-                        موثقة ومعتمدة
+                      <div className="text-[10px] text-gray-500">
+                        الحالة
+                      </div>
+
+                      <div
+                        className={`text-sm font-bold ${
+                          battle.status === 'academic'
+                            ? 'text-orange-400'
+                            : battle.status === 'weak_source'
+                            ? 'text-red-500'
+                            : 'text-brand-green'
+                        }`}
+                      >
+                        {battle.status === 'academic'
+                          ? 'موثق أكاديمياً'
+                          : battle.status === 'weak_source'
+                          ? 'مصدر ضعيف'
+                          : 'موثق ومعتمد'}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
+              {/* تاريخ الإدراج */}
               {battle.created_at && (
                 <div className="rounded-3xl border border-white/10 bg-[#0a0a0a] p-5">
                   <div className="text-[10px] text-gray-500">
                     تاريخ إدراج السجل
                   </div>
+
                   <div className="mt-2 text-xs text-gray-300 font-mono">
                     {new Date(battle.created_at).toLocaleDateString('ar-DZ')}
                   </div>
@@ -560,6 +597,7 @@ const JourneyDetail: React.FC = () => {
                 الرئيسية
               </Link>
             </aside>
+
           </div>
         </section>
       </main>

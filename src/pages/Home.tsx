@@ -312,7 +312,7 @@ const Home = ({
               <div className="mt-4 w-20 h-[2px] bg-[#1f5f3a] mr-auto" />
 
               <p className="mt-5 text-sm md:text-base text-gray-500 font-serif">
-                محطات خالدة من تاريخ الثورة الجزائرية
+                محطات خالدة 
               </p>
             </div>
 
@@ -322,7 +322,7 @@ const Home = ({
               className="group inline-flex items-center gap-3 border border-white/10 bg-white/[0.025] hover:bg-[#c6a66b] hover:border-[#c6a66b] text-gray-300 hover:text-black px-6 py-3.5 rounded-xl text-xs font-bold transition-all"
             >
               <span>
-                استكشف المزيد من المعارك
+                استكشف المزيد من الاحداث
               </span>
 
               <ArrowLeft

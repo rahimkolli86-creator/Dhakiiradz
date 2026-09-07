@@ -113,12 +113,7 @@ export default function CharacterDetails() {
         {/* INFO CARDS */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-24">
 
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 transition-all duration-500 hover:scale-105 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]">
-            <h3 className="text-gray-400 mb-2">اللقب</h3>
-            <p className="font-bold text-xl">
-              {character.nickname || '-'}
-            </p>
-          </div>
+          
 
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 transition-all duration-500 hover:scale-105 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]">
             <h3 className="text-gray-400 mb-2">تاريخ الميلاد</h3>
@@ -134,13 +129,7 @@ export default function CharacterDetails() {
             </p>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 transition-all duration-500 hover:scale-105 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]">
-            <h3 className="text-gray-400 mb-2">الرتبة</h3>
-            <p className="font-bold text-xl">
-              {character.rank || '-'}
-            </p>
-          </div>
-
+          
         </div>
 
         {/* QUOTE */}
