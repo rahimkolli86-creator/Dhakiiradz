@@ -90,7 +90,7 @@ if (!selectedFile) {
       onAdd({ title, 
               caption, 
               type, 
-              file, 
+              file: selectedFile,
               description,
               source, 
               year, 
@@ -101,7 +101,7 @@ if (!selectedFile) {
               pages, 
               duration, 
               status,
-              file: selectedFile
+              
 
             });
       
